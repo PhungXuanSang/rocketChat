@@ -1,0 +1,44 @@
+import type { ImageAttachmentProps } from '@rocket.chat/core-typings';
+import { useMediaUrl } from '@rocket.chat/ui-contexts';
+
+import { useLoadImage } from './hooks/useLoadImage';
+import MessageCollapsible from '../../../MessageCollapsible';
+import AttachmentImage from '../structure/AttachmentImage';
+
+const ImageAttachment = ({
+	id,
+	title,
+	image_url: url,
+	image_preview: imagePreview,
+	image_size: size,
+	image_dimensions: imageDimensions = {
+		width: 368,
+		height: 368,
+	},
+	description,
+	title_link: link,
+	title_link_download: hasDownload,
+	collapsed,
+}: ImageAttachmentProps) => {
+	const [loadImage, setLoadImage] = useLoadImage();
+	const getURL = useMediaUrl();
+
+	return (
+		<>
+			<MessageCollapsible title={title} hasDownload={hasDownload} link={getURL(link || url)} size={size} isCollapsed={collapsed}>
+				<AttachmentImage
+					{...imageDimensions}
+					loadImage={loadImage}
+					setLoadImage={setLoadImage}
+					dataSrc={getURL(link || url)}
+					src={getURL(url)}
+					previewUrl={`data:image/png;base64,${imagePreview}`}
+					id={id}
+					alt={description}
+				/>
+			</MessageCollapsible>
+		</>
+	);
+};
+
+export default ImageAttachment;
