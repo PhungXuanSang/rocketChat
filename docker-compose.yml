@@ -1,0 +1,46 @@
+services:
+  rocketchat:
+    image: ghcr.io/ptvltd/rocket.chat/rocket.chat:local
+    platform: linux/arm64
+    restart: unless-stopped
+    environment:
+      ROOT_URL: http://localhost:4000
+      PORT: 4000
+      MONGO_URL: mongodb://mongodb:27017/rocketchat?replicaSet=rs0
+      MONGO_OPLOG_URL: mongodb://mongodb:27017/local?replicaSet=rs0
+      TRANSPORTER: nats://nats:4222
+      DEPLOY_METHOD: docker
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongodb
+      - nats
+
+  mongodb:
+    image: mongodb/mongodb-community-server:8.0-ubi8
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGODB_REPLICA_SET_NAME: rs0
+      MONGODB_PORT_NUMBER: 27017
+      MONGODB_INITIAL_PRIMARY_HOST: mongodb
+    entrypoint: |
+      bash -c
+        "mongod --replSet rs0 --bind_ip_all &
+          sleep 2;
+          until mongosh --eval \"db.adminCommand('ping')\"; do
+            echo 'Waiting for MongoDB...';
+            sleep 1;
+          done;
+          mongosh --eval \"rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'mongodb:27017' }]})\";
+        wait"
+
+  nats:
+    image: nats:2.6-alpine
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
